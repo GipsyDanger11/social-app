@@ -5,21 +5,39 @@ import * as api from '../api';
 
 const Auth = () => {
   const [isSignup, setIsSignup] = useState(false);
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    if (isSignup) {
+      if (!formData.username || formData.username.length < 3) return "Username must be at least 3 characters";
+      if (formData.password !== formData.confirmPassword) return "Passwords do not match";
+    }
+    if (!formData.email.includes('@')) return "Invalid email address";
+    if (formData.password.length < 6) return "Password must be at least 6 characters";
+    return null;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    const validationError = validateForm();
+    if (validationError) return setError(validationError);
+
+    setLoading(true);
     try {
       const { data } = isSignup ? await api.signup(formData) : await api.login(formData);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       navigate('/');
-      window.location.reload(); // Refresh to update user context
+      window.location.reload();
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong');
+      setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,13 +79,24 @@ const Auth = () => {
             type="password"
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           />
+          {isSignup && (
+            <TextField
+              fullWidth
+              label="Confirm Password"
+              margin="normal"
+              required
+              type="password"
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            />
+          )}
           <Button
             type="submit"
             fullWidth
             variant="contained"
+            disabled={loading}
             sx={{ mt: 3, mb: 2, bgcolor: '#1877F2', borderRadius: '8px', py: 1.5 }}
           >
-            {isSignup ? 'Sign Up' : 'Log In'}
+            {loading ? 'Processing...' : (isSignup ? 'Sign Up' : 'Log In')}
           </Button>
         </form>
 

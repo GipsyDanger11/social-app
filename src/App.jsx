@@ -4,6 +4,9 @@ import Feed from './pages/Feed';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Account from './pages/Account';
+import Chat from './pages/Chat';
+import Tasks from './pages/Tasks';
+import Leaderboard from './pages/Leaderboard';
 import './styles/global.css';
 
 const PrivateRoute = ({ children }) => {
@@ -36,16 +39,23 @@ function App() {
           path="/account" 
           element={<PrivateRoute><Account /></PrivateRoute>} 
         />
+        <Route 
+          path="/chat" 
+          element={<PrivateRoute><Chat /></PrivateRoute>} 
+        />
+        <Route 
+          path="/tasks" 
+          element={<PrivateRoute><Tasks /></PrivateRoute>} 
+        />
+        <Route 
+          path="/leaderboard" 
+          element={<PrivateRoute><Leaderboard /></PrivateRoute>} 
+        />
         {/* Redirect empty profile to current user */}
         <Route 
           path="/profile" 
           element={<PrivateRoute><Navigate to={`/profile/${JSON.parse(localStorage.getItem('user'))?.username}`} /></PrivateRoute>} 
         />
-        
-        {/* Placeholder routes for other sidebar items */}
-        <Route path="/tasks" element={<Navigate to="/" />} />
-        <Route path="/leaderboard" element={<Navigate to="/" />} />
-        <Route path="/chat" element={<Navigate to="/" />} />
         
         {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/" />} />

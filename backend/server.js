@@ -1,12 +1,18 @@
 const express = require('express');
+const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { initSocket } = require('./socket');
 
 // Load env vars
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO (real-time)
+initSocket(server);
 
 // Middleware
 app.use(cors());
@@ -15,6 +21,9 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/posts', require('./routes/posts'));
+app.use('/api/notifications', require('./routes/notifications').router);
+app.use('/api/messages', require('./routes/messages'));
+app.use('/api/tasks', require('./routes/tasks'));
 
 // Root route
 app.get('/', (req, res) => {
@@ -32,8 +41,8 @@ const connectDB = async (retryCount = 0) => {
         await mongoose.connect(MONGO_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, 
-            family: 4
+            serverSelectionTimeoutMS: 5000,
+            family: 4,
         });
         console.log('✅ MongoDB Connected Successfully');
 
@@ -47,7 +56,7 @@ const connectDB = async (retryCount = 0) => {
         }
     } catch (err) {
         console.error('❌ Atlas Connection Error:', err.message);
-        
+
         if (retryCount < 1) { // Try once, then switch to Local Memory DB
             console.log('🔄 Retrying Atlas once more...');
             setTimeout(() => connectDB(retryCount + 1), 2000);
@@ -68,11 +77,17 @@ const connectDB = async (retryCount = 0) => {
             }
         }
     }
-    
-    if (!app.listening) {
-        app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-        app.listening = true;
+
+    if (!server.listening) {
+        server.listen(PORT, () => console.log(`🚀 Server (REST + Socket.IO) running on port ${PORT}`));
     }
 };
 
-connectDB();
+// We try to connect to a real database. If it fails, we still start the server
+// (some routes will return errors, but signup/login will surface the DB issue).
+connectDB().catch((err) => {
+    console.error('Database connection failed:', err.message);
+    if (!server.listening) {
+        server.listen(PORT, () => console.log(`🚀 Server (REST + Socket.IO) running on port ${PORT} (DB OFFLINE)`));
+    }
+});

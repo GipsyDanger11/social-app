@@ -13,7 +13,7 @@ const SidebarLeft = () => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { text: 'Home', icon: <Home />, path: '/home' },
+    { text: 'Home Feed', icon: <Home />, path: '/' },
     { text: 'Tasks', icon: <Assignment />, path: '/tasks' },
     { text: 'Social Feed', icon: <Public />, path: '/' },
     { text: 'Leaderboard', icon: <Leaderboard />, path: '/leaderboard' },

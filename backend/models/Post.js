@@ -36,6 +36,9 @@ const PostSchema = new mongoose.Schema({
     likes: [{
         type: String // Array of usernames who liked
     }],
+    shares: [{
+        type: String // Array of usernames who shared
+    }],
     comments: [CommentSchema],
     type: {
         type: String,

@@ -68,10 +68,9 @@ const Account = () => {
                   src={profile.avatar} 
                   sx={{ width: 100, height: 100, mx: 'auto', mb: 2, border: '2px solid #1877F2' }} 
                 />
-                <Button variant="outlined" size="small" component="label" sx={{ textTransform: 'none' }}>
-                  Change Avatar URL
-                  <input type="text" hidden />
-                </Button>
+                <Typography variant="caption" display="block" color="textSecondary" sx={{ mb: 1 }}>
+                  Paste a URL below to change your avatar
+                </Typography>
               </Grid>
 
               <Grid item xs={12}>
