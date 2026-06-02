@@ -32,14 +32,6 @@ const UserSchema = new mongoose.Schema({
     },
     followers: [{ type: String }], // Array of usernames
     following: [{ type: String }], // Array of usernames
-    points: {
-        type: Number,
-        default: 0
-    },
-    rank: {
-        type: Number,
-        default: 1
-    },
     joinedDate: {
         type: Date,
         default: Date.now

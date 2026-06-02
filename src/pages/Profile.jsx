@@ -106,20 +106,6 @@ const Profile = () => {
                   <Button variant="outlined" sx={{ borderRadius: '20px', textTransform: 'none' }}>Chat</Button>
                   <Button variant="contained" sx={{ borderRadius: '20px', textTransform: 'none', bgcolor: '#1877F2' }}>Follow</Button>
                 </Box>
-                <Typography variant="body2" color="textSecondary">Earned Points</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#1877F2' }}>1,54,796</Typography>
-                
-                {/* Rank Widgets */}
-                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                  <Paper variant="outlined" sx={{ p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ color: '#d4af37' }}>⭐</Box>
-                    <Typography variant="caption">Rank: <strong>2</strong></Typography>
-                  </Paper>
-                  <Paper variant="outlined" sx={{ p: 0.5, borderRadius: '8px', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ color: '#1877F2' }}>❓</Box>
-                    <Typography variant="caption">Rank: <strong>1</strong></Typography>
-                  </Paper>
-                </Box>
               </Box>
             </Box>
 

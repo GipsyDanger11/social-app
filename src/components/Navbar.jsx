@@ -42,15 +42,6 @@ const Navbar = ({ user }) => {
 
         {/* Right: Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: '#f0f2f5', borderRadius: '20px', px: 1, mr: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#d4af37', display: 'flex', alignItems: 'center' }}>
-              <Box component="span" sx={{ mr: 0.5 }}>⭐</Box> 205
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#4caf50', ml: 1 }}>
-              ₹0.00
-            </Typography>
-          </Box>
-          
           <IconButton size="small" sx={{ bgcolor: '#f0f2f5' }}>
             <Badge badgeContent={4} color="error">
               <Notifications />
@@ -63,7 +54,7 @@ const Navbar = ({ user }) => {
 
           <Avatar 
             src={user?.avatar || "https://via.placeholder.com/40"} 
-            sx={{ width: 40, height: 40, cursor: 'pointer', border: '2px solid #4caf50' }}
+            sx={{ width: 40, height: 40, cursor: 'pointer' }}
             onClick={() => navigate('/account')}
           />
         </Box>
