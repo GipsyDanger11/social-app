@@ -23,14 +23,18 @@ app.get('/', (req, res) => {
 
 // Database connection
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/social-app';
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
     .then(() => {
-        console.log('MongoDB Connected');
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        console.log('✅ MongoDB Connected Successfully');
+        app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
     })
     .catch(err => {
-        console.error('Database connection error:', err);
+        console.error('❌ Database connection error:', err.message);
+        if (err.message.includes('querySrv ECONNREFUSED')) {
+            console.error('👉 TIP: This is likely a DNS issue or your firewall is blocking the MongoDB SRV record.');
+            console.error('👉 TRY: Use the "Standard Connection String" (starts with mongodb:// instead of mongodb+srv://) from Atlas.');
+        }
         process.exit(1);
     });
