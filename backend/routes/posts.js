@@ -176,9 +176,19 @@ router.get('/search', async (req, res) => {
 router.post('/', auth, async (req, res) => {
     try {
         const { content, imageUrl, type } = req.body;
+
+        // The brief says: "Both fields should not be mandatory (either one
+        // is enough)." So text-only, image-only, and text+image are all
+        // valid — but the post must have AT LEAST ONE of the two.
+        const trimmedContent = typeof content === 'string' ? content.trim() : '';
+        const trimmedImage   = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+        if (!trimmedContent && !trimmedImage) {
+            return res.status(400).json({ message: 'A post must have either text or an image.' });
+        }
+
         const newPost = new Post({
-            content,
-            imageUrl,
+            content: trimmedContent,
+            imageUrl: trimmedImage,
             type: type || 'post',
             author: req.user.id,
             authorUsername: req.username

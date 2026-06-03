@@ -56,9 +56,15 @@ const CommentSchema = new mongoose.Schema({
  * @type {import('mongoose').Schema<PostDoc>}
  */
 const PostSchema = new mongoose.Schema({
+    /**
+     * Post body. Optional on its own — a post is valid as long as EITHER
+     * `content` or `imageUrl` is present. The check that enforces "one of
+     * the two must be set" lives in `routes/posts.js#POST /` (schema-level
+     * `required: true` on an empty string is awkward in Mongoose).
+     */
     content: {
         type: String,
-        required: true
+        default: ''
     },
     imageUrl: {
         type: String,
