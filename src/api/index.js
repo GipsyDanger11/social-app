@@ -48,3 +48,12 @@ export const createTask = (task) => API.post('/tasks', task);
 export const updateTask = (id, task) => API.put(`/tasks/${id}`, task);
 export const deleteTask = (id) => API.delete(`/tasks/${id}`);
 export const fetchLeaderboard = () => API.get('/tasks/leaderboard/all');
+
+// Uploads — returns { url, filename, size, mimetype } or throws
+export const uploadImage = (file) => {
+  const form = new FormData();
+  form.append('image', file);
+  return API.post('/uploads/image', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};

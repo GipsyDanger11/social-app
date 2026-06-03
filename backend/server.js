@@ -24,6 +24,11 @@ app.use('/api/posts', require('./routes/posts'));
 app.use('/api/notifications', require('./routes/notifications').router);
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/uploads', require('./routes/uploads'));
+
+// Serve uploaded files (images) as static assets
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Root route
 app.get('/', (req, res) => {

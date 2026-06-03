@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, Paper, Typography, Avatar, List, ListItem, ListItemAvatar, ListItemText, TextField, IconButton, Divider, Badge, CircularProgress,
+  Box, Paper, Typography, Avatar, List, ListItem, ListItemAvatar, ListItemText, TextField, IconButton, Divider, Badge, CircularProgress, Tooltip,
 } from '@mui/material';
 import Send from '@mui/icons-material/Send';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import Navbar from '../components/Navbar';
+import BackToHome from '../components/BackToHome';
 import OnlineIndicator from '../components/OnlineIndicator';
 import { useSocket } from '../context/SocketContext';
 import * as api from '../api';
@@ -148,8 +150,50 @@ const Chat = () => {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <Navbar user={currentUser} />
-            <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2 }}>
-                <Paper elevation={0} sx={{ display: 'flex', height: 'calc(100vh - 120px)', borderRadius: '16px', overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+
+            {/* Hero header with back button */}
+            <Box
+                sx={{
+                    background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                    color: 'white',
+                    py: 4,
+                    px: 3,
+                    position: 'relative',
+                    overflow: 'hidden',
+                }}
+            >
+                <Box sx={{ position: 'absolute', top: -80, right: -80, width: 240, height: 240, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.12)' }} />
+                <Box sx={{ position: 'absolute', bottom: -60, left: '15%', width: 180, height: 180, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.08)' }} />
+                <Box sx={{ maxWidth: 1200, mx: 'auto', position: 'relative', zIndex: 1 }}>
+                    <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <BackToHome
+                            label="Back"
+                            showHomeIcon={false}
+                            sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', borderColor: 'rgba(255,255,255,0.3)', '&:hover': { bgcolor: 'rgba(255,255,255,0.25)', color: 'white', borderColor: 'rgba(255,255,255,0.5)' } }}
+                        />
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, px: 1.2, py: 0.4, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(6px)' }}>
+                            <Box className={`live-dot ${connected ? 'live-dot-on' : 'live-dot-off'}`} />
+                            <Typography variant="caption" sx={{ color: 'white', fontWeight: 700, fontSize: 11 }}>
+                                {connected ? 'LIVE' : 'OFFLINE'}
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Box>
+                        <Typography variant="overline" sx={{ opacity: 0.9, fontWeight: 600, letterSpacing: 1.5 }}>
+                            Real-Time Messaging
+                        </Typography>
+                        <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1.1, mb: 0.5 }}>
+                            💬 Chats
+                        </Typography>
+                        <Typography variant="body1" sx={{ opacity: 0.95 }}>
+                            Messages deliver instantly with typing indicators and online presence.
+                        </Typography>
+                    </Box>
+                </Box>
+            </Box>
+
+            <Box sx={{ maxWidth: 1200, mx: 'auto', p: 2, mt: -3, position: 'relative', zIndex: 2 }}>
+                <Paper elevation={0} sx={{ display: 'flex', height: 'calc(100vh - 240px)', minHeight: 500, borderRadius: '16px', overflow: 'hidden', border: '1px solid', borderColor: 'divider', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
                     {/* Users List */}
                     <Box sx={{ width: 320, borderRight: 1, borderColor: 'divider', overflow: 'auto', bgcolor: 'background.paper' }}>
                         <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -215,18 +259,26 @@ const Chat = () => {
                     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
                         {selectedUser ? (
                             <>
-                                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'background.paper' }}>
+                                <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1.5, bgcolor: 'background.paper' }}>
+                                    <Tooltip title="Back to chats">
+                                        <IconButton size="small" onClick={() => setSelectedUser(null)} sx={{ display: { xs: 'inline-flex', md: 'none' } }}>
+                                            <ArrowBack fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                     <Box sx={{ position: 'relative' }}>
-                                        <Avatar src={users.find((u) => u.username === selectedUser)?.avatar} sx={{ width: 44, height: 44 }}>
+                                        <Avatar src={users.find((u) => u.username === selectedUser)?.avatar} sx={{ width: 44, height: 44, border: '2px solid #11998e' }}>
                                             {selectedUser[0]?.toUpperCase()}
                                         </Avatar>
                                         <OnlineIndicator username={selectedUser} />
                                     </Box>
                                     <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>@{selectedUser}</Typography>
-                                        <Typography variant="caption" color={onlineUsers.includes(selectedUser) ? 'primary.main' : 'text.secondary'}>
-                                            {onlineUsers.includes(selectedUser) ? '● Active now' : 'Offline'}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: onlineUsers.includes(selectedUser) ? '#31a24c' : '#b0b3b8' }} />
+                                            <Typography variant="caption" sx={{ color: onlineUsers.includes(selectedUser) ? '#31a24c' : 'text.secondary', fontWeight: onlineUsers.includes(selectedUser) ? 600 : 400 }}>
+                                                {onlineUsers.includes(selectedUser) ? 'Active now' : 'Offline'}
+                                            </Typography>
+                                        </Box>
                                     </Box>
                                 </Box>
 
@@ -318,9 +370,11 @@ const Chat = () => {
                         ) : (
                             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <Box sx={{ textAlign: 'center' }}>
-                                    <Typography sx={{ fontSize: 64, mb: 2 }}>💬</Typography>
-                                    <Typography variant="h6" sx={{ mb: 0.5 }}>Your Messages</Typography>
-                                    <Typography color="text.secondary" variant="body2">Select a chat to start messaging</Typography>
+                                    <Typography sx={{ fontSize: 80, mb: 2 }}>💬</Typography>
+                                    <Typography variant="h5" sx={{ mb: 0.5, fontWeight: 700 }}>Your Messages</Typography>
+                                    <Typography color="text.secondary" variant="body2" sx={{ maxWidth: 320 }}>
+                                        Select a chat to start messaging in real-time. All your conversations appear on the left.
+                                    </Typography>
                                 </Box>
                             </Box>
                         )}

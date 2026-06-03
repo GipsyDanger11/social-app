@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  AppBar, Toolbar, Typography, InputBase, Box, IconButton, Avatar, Badge, Popover, List, ListItem, ListItemText, Divider, Menu, MenuItem, Tooltip, CircularProgress,
+  AppBar, Toolbar, Typography, InputBase, Box, IconButton, Avatar, Badge, List, ListItem, ListItemText, Divider, Menu, MenuItem, Tooltip, CircularProgress, Popper, ClickAwayListener, Paper, Popover,
 } from '@mui/material';
 import Search from '@mui/icons-material/Search';
 import Notifications from '@mui/icons-material/Notifications';
@@ -25,8 +25,10 @@ const Navbar = ({ user }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [userMenu, setUserMenu] = useState(null);
   const [searchResults, setSearchResults] = useState({ posts: [], users: [] });
-  const [searchAnchorEl, setSearchAnchorEl] = useState(null);
-  const [showResults, setShowResults] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchContainerRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Initial unread count
   useEffect(() => {
@@ -60,22 +62,32 @@ const Navbar = ({ user }) => {
     } catch (err) { /* ignore */ }
   };
 
-  const handleSearchChange = async (e) => {
+  const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearch(query);
-    setShowResults(true);
-    if (query.length >= 1) {
+    if (query.trim().length === 0) {
+      setSearchResults({ posts: [], users: [] });
+      return;
+    }
+    // Debounce API calls
+    if (handleSearchChange._t) clearTimeout(handleSearchChange._t);
+    handleSearchChange._t = setTimeout(async () => {
+      setSearchLoading(true);
       try {
         const [postsRes, usersRes] = await Promise.all([
           api.searchPosts(query).catch(() => ({ data: [] })),
           api.searchUsers(query).catch(() => ({ data: [] })),
         ]);
         setSearchResults({ posts: postsRes.data || [], users: usersRes.data || [] });
-        setSearchAnchorEl(document.getElementById('search-bar-container'));
       } catch (err) { /* ignore */ }
-    } else {
-      setSearchResults({ posts: [], users: [] });
-    }
+      setSearchLoading(false);
+    }, 150);
+  };
+
+  const clearSearch = () => {
+    setSearch('');
+    setSearchResults({ posts: [], users: [] });
+    searchInputRef.current?.focus();
   };
 
   const handleLogout = () => {
@@ -119,7 +131,7 @@ const Navbar = ({ user }) => {
 
         {/* Center: Search Bar */}
         <Box
-          id="search-bar-container"
+          ref={searchContainerRef}
           sx={{
             display: { xs: 'none', md: 'flex' },
             alignItems: 'center',
@@ -132,74 +144,93 @@ const Navbar = ({ user }) => {
         >
           <Search fontSize="small" sx={{ color: 'text.secondary', mr: 1 }} />
           <InputBase
+            inputRef={searchInputRef}
             placeholder="Search posts, people..."
             sx={{ ml: 0, flex: 1, fontSize: '14px', color: 'text.primary' }}
             value={search}
             onChange={handleSearchChange}
-            onFocus={() => setShowResults(true)}
+            onFocus={() => setSearchFocused(true)}
+            autoComplete="off"
           />
-        </Box>
+          {searchLoading && <CircularProgress size={14} thickness={5} sx={{ color: 'text.secondary' }} />}
 
-        {/* Search Results Popover */}
-        <Popover
-          open={showResults && (searchResults.posts.length > 0 || searchResults.users.length > 0) && Boolean(searchAnchorEl)}
-          anchorEl={searchAnchorEl}
-          onClose={() => setShowResults(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-        >
-          <Box sx={{ width: 400, maxHeight: 450, overflow: 'auto', p: 1 }}>
-            {searchResults.users.length > 0 && (
-              <Box>
-                <Typography variant="caption" sx={{ p: 1, color: 'text.secondary', fontWeight: 700 }}>
-                  PEOPLE
-                </Typography>
-                {searchResults.users.slice(0, 5).map((u) => (
-                  <Box
-                    key={u.username}
-                    sx={{ p: 1.2, borderRadius: 1, cursor: 'pointer', display: 'flex', gap: 1, alignItems: 'center', '&:hover': { bgcolor: 'action.hover' } }}
-                    onClick={() => { navigate(`/profile/${u.username}`); setShowResults(false); setSearch(''); }}
-                  >
-                    <Box sx={{ position: 'relative' }}>
-                      <Avatar src={u.avatar} sx={{ width: 36, height: 36 }}>{u.username[0]?.toUpperCase()}</Avatar>
-                      <OnlineIndicator username={u.username} size={10} />
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{u.username}</Typography>
-                      <Typography variant="caption" color="text.secondary" noWrap>{u.bio || `@${u.username}`}</Typography>
-                    </Box>
+          {/* Search Results - uses Popper so it never steals input focus */}
+          <Popper
+            open={searchFocused && (searchResults.posts.length > 0 || searchResults.users.length > 0 || searchLoading)}
+            anchorEl={searchContainerRef.current}
+            placement="bottom-start"
+            disablePortal={false}
+            modifiers={[{ name: 'offset', options: { offset: [0, 8] } }]}
+            sx={{ zIndex: 1500, width: searchContainerRef.current?.offsetWidth || 400 }}
+          >
+            <ClickAwayListener
+              onClickAway={(e) => {
+                // Don't close if the click is inside the search bar
+                if (searchContainerRef.current && searchContainerRef.current.contains(e.target)) return;
+                setSearchFocused(false);
+              }}
+            >
+              <Paper elevation={8} sx={{ width: '100%', maxHeight: 480, overflow: 'auto', borderRadius: '12px', p: 1 }}>
+                {searchLoading && searchResults.posts.length === 0 && searchResults.users.length === 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                    <CircularProgress size={20} />
                   </Box>
-                ))}
-              </Box>
-            )}
-            {searchResults.posts.length > 0 && (
-              <Box>
-                <Typography variant="caption" sx={{ p: 1, color: 'text.secondary', fontWeight: 700 }}>
-                  POSTS
-                </Typography>
-                {searchResults.posts.slice(0, 5).map((post) => (
-                  <Box
-                    key={post._id}
-                    sx={{ p: 1.2, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-                    onClick={() => { navigate('/'); setShowResults(false); setSearch(''); }}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                      @{post.authorUsername}
+                )}
+                {searchResults.users.length > 0 && (
+                  <Box>
+                    <Typography variant="caption" sx={{ p: 1, color: 'text.secondary', fontWeight: 700 }}>
+                      PEOPLE
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {post.content}
-                    </Typography>
+                    {searchResults.users.slice(0, 5).map((u) => (
+                      <Box
+                        key={u.username}
+                        sx={{ p: 1.2, borderRadius: 1, cursor: 'pointer', display: 'flex', gap: 1, alignItems: 'center', '&:hover': { bgcolor: 'action.hover' } }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { navigate(`/profile/${u.username}`); setSearchFocused(false); clearSearch(); }}
+                      >
+                        <Box sx={{ position: 'relative' }}>
+                          <Avatar src={u.avatar} sx={{ width: 36, height: 36 }}>{u.username[0]?.toUpperCase()}</Avatar>
+                          <OnlineIndicator username={u.username} size={10} />
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{u.username}</Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap>{u.bio || `@${u.username}`}</Typography>
+                        </Box>
+                      </Box>
+                    ))}
                   </Box>
-                ))}
-              </Box>
-            )}
-            {searchResults.users.length === 0 && searchResults.posts.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
-                No results
-              </Typography>
-            )}
-          </Box>
-        </Popover>
+                )}
+                {searchResults.posts.length > 0 && (
+                  <Box>
+                    <Typography variant="caption" sx={{ p: 1, color: 'text.secondary', fontWeight: 700 }}>
+                      POSTS
+                    </Typography>
+                    {searchResults.posts.slice(0, 5).map((post) => (
+                      <Box
+                        key={post._id}
+                        sx={{ p: 1.2, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => { navigate('/'); setSearchFocused(false); clearSearch(); }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          @{post.authorUsername}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {post.content}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+                {!searchLoading && searchResults.users.length === 0 && searchResults.posts.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
+                    No results for "{search}"
+                  </Typography>
+                )}
+              </Paper>
+            </ClickAwayListener>
+          </Popper>
+        </Box>
 
         {/* Right: Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -226,6 +257,9 @@ const Navbar = ({ user }) => {
             onClose={() => setAnchorEl(null)}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            disableAutoFocus
+            disableEnforceFocus
+            disableRestoreFocus
           >
             <Box sx={{ width: 360, maxHeight: 480, overflow: 'auto' }}>
               <Box sx={{ p: 2, borderBottom: '1px solid #e4e6eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

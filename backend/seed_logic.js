@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 const Post = require('./models/Post');
+const Task = require('./models/Task');
 
 // Comprehensive in-memory seed: 12 users, 22+ posts, follow graph
 const seedLogic = async () => {
@@ -94,6 +95,102 @@ const seedLogic = async () => {
                 comments: p.comments || [],
             });
             await post.save();
+        }
+
+        // ---- Tasks for the leaderboard ----
+        // 3-12 tasks per user, ~70% of them completed so the leaderboard has visible rankings
+        const taskTemplates = {
+            johndoe: [
+                { title: 'Plan weekend hike to Mt. Hood', description: 'Pack gear, check weather, plan route', status: 'completed', priority: 'high' },
+                { title: 'Edit sunrise photo set', description: 'Lightroom presets and export', status: 'completed', priority: 'medium' },
+                { title: 'Reply to follower comments', status: 'completed', priority: 'low' },
+                { title: 'Book campsite for next month', status: 'in-progress', priority: 'medium' },
+                { title: 'Print 2026 calendar photos', status: 'todo', priority: 'low' },
+            ],
+            janedoe: [
+                { title: 'Ship v2.0 of the social app', description: 'WebSocket layer + feed pagination', status: 'completed', priority: 'high' },
+                { title: 'Refactor auth middleware', status: 'completed', priority: 'medium' },
+                { title: 'Write API documentation', status: 'completed', priority: 'medium' },
+                { title: 'Set up CI/CD on Render', status: 'completed', priority: 'high' },
+                { title: 'Add GraphQL endpoint', status: 'in-progress', priority: 'low' },
+                { title: 'Configure Sentry error tracking', status: 'todo', priority: 'medium' },
+            ],
+            social_explorer: [
+                { title: 'Renew passport', status: 'completed', priority: 'high' },
+                { title: 'Book Maldives overwater villa', status: 'completed', priority: 'high' },
+                { title: 'Write Bali travel blog post', status: 'in-progress', priority: 'medium' },
+            ],
+            mike_tech: [
+                { title: 'Train sentiment-analysis model', status: 'completed', priority: 'high' },
+                { title: 'Deploy ML model to production', status: 'completed', priority: 'high' },
+                { title: 'Write technical blog post on transformers', status: 'completed', priority: 'medium' },
+                { title: 'Optimize inference latency', status: 'in-progress', priority: 'high' },
+                { title: 'Apply to GSoC 2026', status: 'todo', priority: 'low' },
+            ],
+            sara_designs: [
+                { title: 'Finish branding project mockups', status: 'completed', priority: 'high' },
+                { title: 'Create design system documentation', status: 'completed', priority: 'medium' },
+                { title: 'Design app onboarding flow', status: 'completed', priority: 'high' },
+                { title: 'Update portfolio website', status: 'in-progress', priority: 'medium' },
+                { title: 'Record Figma tutorial for YouTube', status: 'todo', priority: 'low' },
+            ],
+            alex_fitness: [
+                { title: 'Build 12-week hypertrophy program', status: 'completed', priority: 'high' },
+                { title: 'Publish meal-prep video', status: 'completed', priority: 'medium' },
+                { title: 'Plan online coaching funnel', status: 'in-progress', priority: 'medium' },
+                { title: 'Get sports-nutrition certificate', status: 'todo', priority: 'low' },
+            ],
+            emily_travels: [
+                { title: 'Edit Tokyo vlog', status: 'completed', priority: 'high' },
+                { title: 'Publish Bali blog', status: 'completed', priority: 'medium' },
+                { title: 'Plan Iceland itinerary for June', status: 'completed', priority: 'high' },
+                { title: 'Negotiate hotel collab in Santorini', status: 'in-progress', priority: 'medium' },
+                { title: 'Renew drone license', status: 'todo', priority: 'low' },
+            ],
+            david_chef: [
+                { title: 'Test new pasta menu', status: 'completed', priority: 'high' },
+                { title: 'Photograph new dishes for IG', status: 'completed', priority: 'medium' },
+                { title: 'Source local produce suppliers', status: 'completed', priority: 'high' },
+                { title: 'Plan summer tasting event', status: 'in-progress', priority: 'medium' },
+                { title: 'Write cookbook proposal', status: 'todo', priority: 'low' },
+            ],
+            lisa_artist: [
+                { title: 'Finish "Cosmic Dreams" series', status: 'completed', priority: 'high' },
+                { title: 'Open Etsy print shop', status: 'completed', priority: 'medium' },
+                { title: 'Apply to Art Basel booth', status: 'in-progress', priority: 'high' },
+            ],
+            tom_music: [
+                { title: 'Mix and master new EP', status: 'completed', priority: 'high' },
+                { title: 'Submit to Spotify editorial playlists', status: 'in-progress', priority: 'medium' },
+                { title: 'Plan album-release party', status: 'todo', priority: 'low' },
+            ],
+            nina_books: [
+                { title: 'Finish "The Midnight Library" review', status: 'completed', priority: 'medium' },
+                { title: 'Write Q1 reading roundup', status: 'completed', priority: 'medium' },
+                { title: 'Launch book-club newsletter', status: 'in-progress', priority: 'high' },
+                { title: 'Apply to BEA 2026', status: 'todo', priority: 'low' },
+            ],
+            chris_photo: [
+                { title: 'Edit aurora photo set', status: 'completed', priority: 'high' },
+                { title: 'Build portfolio site', status: 'completed', priority: 'medium' },
+                { title: 'Print 2026 wall calendar', status: 'in-progress', priority: 'medium' },
+                { title: 'Plan Iceland photo tour', status: 'todo', priority: 'low' },
+            ],
+        };
+
+        for (const [author, tasks] of Object.entries(taskTemplates)) {
+            for (const t of tasks) {
+                const dueDate = t.status === 'completed' ? null : new Date(Date.now() + (Math.random() * 14 - 3) * 24 * 60 * 60 * 1000);
+                const task = new Task({
+                    title: t.title,
+                    description: t.description || '',
+                    status: t.status,
+                    priority: t.priority,
+                    author,
+                    dueDate,
+                });
+                await task.save();
+            }
         }
     } catch (err) {
         console.error('Seeding error:', err);
