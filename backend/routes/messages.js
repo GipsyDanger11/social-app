@@ -42,9 +42,14 @@ const auth = async (req, res, next) => {
     if (!token) return res.status(401).json({ message: 'No token' });
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            // Same 401 message the auth.js middleware uses, so the frontend
+            // 401 interceptor can clear the stale JWT and bounce the user
+            // back to /auth.
+            return res.status(401).json({ message: 'User no longer exists. Please log in again.' });
+        }
+        req.user = { id: user._id.toString() };
         req.username = user.username;
         next();
     } catch (err) {

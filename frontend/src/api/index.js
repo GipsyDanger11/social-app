@@ -10,6 +10,29 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
+/**
+ * Response interceptor: when the backend returns 401 with the
+ * "User no longer exists" message (i.e. the in-memory DB was reset on
+ * a server restart and the JWT in localStorage points to a stale id),
+ * wipe the local credentials and reload the app so the user is sent
+ * back to /auth. This prevents the UI from silently failing on every
+ * authenticated request after a backend restart.
+ */
+API.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err.response?.status;
+    const message = err.response?.data?.message;
+    if (status === 401 && message && /user no longer exists/i.test(message)) {
+      // Wipe credentials and hard-reload so React Router redirects to /auth.
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/auth';
+    }
+    return Promise.reject(err);
+  }
+);
+
 export const login = (formData) => API.post('/auth/login', formData);
 export const signup = (formData) => API.post('/auth/signup', formData);
 export const fetchMe = () => API.get('/auth/me');

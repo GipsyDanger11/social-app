@@ -127,8 +127,10 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * JWT-based authentication middleware. Populates `req.user = { id }` and
- * forwards to the next handler. Used by every authenticated route below.
+ * JWT-based authentication middleware. Verifies the `x-auth-token` header,
+ * loads the corresponding user, and 401s if the user no longer exists
+ * (e.g. the in-memory DB was reset on a server restart, so the JWT
+ * still decodes but points to a stale user id).
  *
  * @param   {import('express').Request}  req
  * @param   {import('express').Response} res
@@ -140,7 +142,13 @@ const authMiddleware = async (req, res, next) => {
     if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            // JWT decoded fine but the user is gone — force a re-login on the client.
+            return res.status(401).json({ message: 'User no longer exists. Please log in again.' });
+        }
+        req.user = { id: user._id.toString() };
+        req.username = user.username;
         next();
     } catch (err) {
         res.status(401).json({ message: 'Token is not valid' });
@@ -176,6 +184,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
     try {
         const { username, bio, avatar, coverImage } = req.body;
         const user = await User.findById(req.user.id);
+        if (!user) return res.status(401).json({ message: 'User no longer exists. Please log in again.' });
 
         if (username) user.username = username;
         if (bio !== undefined) user.bio = bio;
@@ -204,6 +213,7 @@ router.post('/follow/:username', authMiddleware, async (req, res) => {
         const currentUser = await User.findById(req.user.id);
 
         if (!userToFollow) return res.status(404).json({ message: 'User not found' });
+        if (!currentUser) return res.status(401).json({ message: 'User no longer exists. Please log in again.' });
         if (userToFollow.username === currentUser.username) {
             return res.status(400).json({ message: 'Cannot follow yourself' });
         }
@@ -267,9 +277,12 @@ router.get('/suggested-users', authMiddleware, async (req, res) => {
         const me = await User.findById(req.user.id);
         if (!me) return res.status(404).json({ message: 'User not found' });
 
+        // Defensive: make sure the arrays are initialised (older records may lack them)
+        const following = Array.isArray(me.following) ? me.following : [];
+
         // Suggest users that I'm not following
         const users = await User.find({
-            username: { $ne: me.username, $nin: me.following }
+            username: { $ne: me.username, $nin: following }
         })
             .select('username avatar bio followers following')
             .limit(8);

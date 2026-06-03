@@ -61,10 +61,13 @@ const UserSchema = new mongoose.Schema({
         default: ''
     },
     /** Array of usernames that follow this user. Stored as plain strings (not ObjectIds)
-     *  so follow/unfollow operations are O(1) without an extra DB round-trip. */
-    followers: [{ type: String }],
-    /** Array of usernames this user is following. */
-    following: [{ type: String }],
+     *  so follow/unfollow operations are O(1) without an extra DB round-trip.
+     *  Default `[]` is critical: the suggested-users query does
+     *  `User.find({ username: { $nin: me.following } })` and `$nin: undefined`
+     *  would match every user, making the sidebar look like the user follows everyone. */
+    followers: { type: [String], default: [] },
+    /** Array of usernames this user is following. Same rationale as `followers`. */
+    following: { type: [String], default: [] },
     /** Cryptographically random token emailed to the user during the reset flow. */
     resetPasswordToken: { type: String, default: null },
     /** Expiry timestamp for the reset token (1 hour after generation). */
