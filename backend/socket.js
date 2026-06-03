@@ -1,13 +1,39 @@
-// Socket.IO setup and event broadcasting helpers
+/**
+ * @file Socket.IO server + helpers.
+ * @description Sets up the WebSocket layer, authenticates each socket
+ *              using the same JWT as the REST API, joins each user to
+ *              a private `user:<username>` room and exposes helper
+ *              functions for the REST routes to broadcast / notify.
+ *
+ *  Exposed helpers:
+ *    - initSocket(server)        Wire Socket.IO to a given HTTP server.
+ *    - getIO()                    Return the active io instance.
+ *    - isUserOnline(username)     Is the user currently connected?
+ *    - getOnlineUsers()           Snapshot list of online usernames.
+ */
+
 const socketIO = require('socket.io');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 
-// Track online users: Map<socketId, username>
+/** Map of `socketId -> username` for every currently-connected socket. */
 const onlineUsers = new Map();
 
+/** The active Socket.IO server (null until `initSocket` is called). */
 let io = null;
 
+/**
+ * Initialize Socket.IO on the given HTTP server.
+ *
+ *  - Authenticates each socket using the JWT supplied by the client
+ *    (anonymous sockets are allowed for global-only events).
+ *  - On connect, joins the user to their `user:<username>` room and
+ *    broadcasts a `presence:update` so the UI can mark them online.
+ *  - Listens for `chat:join` / `chat:leave` / `chat:typing` events.
+ *
+ * @param   {import('http').Server} server   The HTTP server returned by `http.createServer`.
+ * @returns {import('socket.io').Server}     The Socket.IO server instance.
+ */
 const initSocket = (server) => {
     io = socketIO(server, {
         cors: {
@@ -80,15 +106,29 @@ const initSocket = (server) => {
     return io;
 };
 
+/**
+ * Return the active Socket.IO server.
+ * @returns {import('socket.io').Server}
+ * @throws  {Error} If `initSocket` has not been called yet.
+ */
 const getIO = () => {
     if (!io) throw new Error('Socket.io not initialized');
     return io;
 };
 
+/**
+ * Is the given username currently connected to at least one socket?
+ * @param   {string}  username
+ * @returns {boolean}
+ */
 const isUserOnline = (username) => {
     return Array.from(onlineUsers.values()).includes(username);
 };
 
+/**
+ * De-duplicated snapshot of online usernames.
+ * @returns {string[]}
+ */
 const getOnlineUsers = () => Array.from(new Set(onlineUsers.values()));
 
 module.exports = { initSocket, getIO, isUserOnline, getOnlineUsers };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Paper, Box, Typography, TextField, Button, Link, Container } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import * as api from '../api';
 
 const Auth = () => {
@@ -100,10 +100,23 @@ const Auth = () => {
           </Button>
         </form>
 
+        {!isSignup && (
+          <Box sx={{ textAlign: 'center', mb: 1 }}>
+            <Link
+              component={RouterLink}
+              to="/forgot-password"
+              variant="body2"
+              sx={{ textDecoration: 'none', fontWeight: 600 }}
+            >
+              Forgot password?
+            </Link>
+          </Box>
+        )}
+
         <Box sx={{ textAlign: 'center' }}>
-          <Link 
-            component="button" 
-            variant="body2" 
+          <Link
+            component="button"
+            variant="body2"
             onClick={() => setIsSignup(!isSignup)}
             sx={{ textDecoration: 'none' }}
           >

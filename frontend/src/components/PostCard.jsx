@@ -13,6 +13,7 @@ import Send from '@mui/icons-material/Send';
 import moment from 'moment';
 import * as api from '../api';
 import { useSocket } from '../context/SocketContext';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 const PostCard = ({ post, onLike, onDelete, onUpdate, currentUsername, onProfileClick }) => {
   const isLiked = (post.likes || []).includes(currentUsername);
@@ -227,7 +228,7 @@ const PostCard = ({ post, onLike, onDelete, onUpdate, currentUsername, onProfile
       {post.imageUrl && (
         <Box
           component="img"
-          src={post.imageUrl}
+          src={resolveImageUrl(post.imageUrl)}
           onDoubleClick={handleLikeClick}
           sx={{ width: '100%', borderRadius: '12px', mb: 2, maxHeight: 500, objectFit: 'cover', cursor: 'pointer' }}
         />

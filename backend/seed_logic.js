@@ -1,10 +1,29 @@
+/**
+ * @file In-memory / shared seed logic.
+ * @description Populates a freshly-created database (Atlas or local
+ *              in-memory) with 12 demo users, 22+ posts, a follow graph,
+ *              and 3-12 tasks per user — enough realistic data to make
+ *              the feed, profile, tasks, and leaderboard pages all
+ *              look "alive" on first boot. The demo password for every
+ *              account is `password123`.
+ *
+ *  This file is required by BOTH:
+ *    - `server.js`   (called automatically on first Atlas connect)
+ *    - `seed.js`     (CLI: `npm run seed`)
+ */
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 const Post = require('./models/Post');
 const Task = require('./models/Task');
 
-// Comprehensive in-memory seed: 12 users, 22+ posts, follow graph
+/**
+ * Run the full seed: users → follow graph → posts → tasks.
+ * No-op if the database is already populated.
+ *
+ * @returns {Promise<void>}
+ */
 const seedLogic = async () => {
     try {
         const salt = await bcrypt.genSalt(10);

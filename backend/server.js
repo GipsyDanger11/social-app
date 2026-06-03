@@ -1,14 +1,28 @@
+/**
+ * @file Express + Socket.IO entry point.
+ * @description Boots the HTTP server, mounts every API route, serves
+ *              uploaded images as static assets, and tries to connect
+ *              to MongoDB Atlas. If Atlas is unreachable, the server
+ *              transparently falls back to an in-memory MongoDB
+ *              (mongodb-memory-server) so the app is always usable
+ *              for local demos and tests.
+ */
+
 const express = require('express');
 const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const { initSocket } = require('./socket');
 
 // Load env vars
 dotenv.config();
 
+/** Express application instance. */
 const app = express();
+
+/** Raw HTTP server (needed so Socket.IO can attach). */
 const server = http.createServer(app);
 
 // Initialize Socket.IO (real-time)
@@ -27,7 +41,6 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/uploads', require('./routes/uploads'));
 
 // Serve uploaded files (images) as static assets
-const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Root route
@@ -36,9 +49,20 @@ app.get('/', (req, res) => {
 });
 
 // Database connection
+/** Port to listen on. Render injects its own; we default to 5000 locally. */
 const PORT = process.env.PORT || 5000;
+
+/** MongoDB connection string from the environment. */
 const MONGO_URI = process.env.MONGO_URI;
 
+/**
+ * Attempt to connect to MongoDB Atlas. On success, seed the database
+ * with demo content if it's empty. On failure, retry once and then
+ * fall back to an in-memory MongoDB so the API is still usable in dev.
+ *
+ * @param   {number} [retryCount=0]   Internal retry counter (max 1)
+ * @returns {Promise<void>}
+ */
 const connectDB = async (retryCount = 0) => {
     try {
         // 1. First, try to connect to the real MongoDB Atlas

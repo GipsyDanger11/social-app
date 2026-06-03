@@ -1,3 +1,16 @@
+/**
+ * @file Standalone seed CLI.
+ * @description Connect directly to `MONGO_URI`, wipe the database, and
+ *              repopulate it with the same demo content as `seed_logic.js`.
+ *              Run with `npm run seed` to rebuild the database from scratch
+ *              (e.g. when you change the demo users or posts).
+ *
+ *              Differences from `seed_logic.js`:
+ *                - Connects to MongoDB directly (no in-memory fallback).
+ *                - Wipes ALL collections before seeding.
+ *                - Includes notifications + sample messages in the output.
+ */
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const User = require('./models/User');
@@ -9,6 +22,12 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+/**
+ * Connect to MongoDB, wipe all collections, and repopulate with demo data.
+ * Exits the process when finished.
+ *
+ * @returns {Promise<void>}
+ */
 const seedData = async () => {
     try {
         console.log('📡 Connecting to MongoDB for seeding...');

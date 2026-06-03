@@ -1,3 +1,15 @@
+/**
+ * @file Task + leaderboard routes.
+ * @description Mounted at `/api/tasks`. Provides:
+ *   - Full CRUD over the current user's tasks
+ *   - Real-time events (`task:new` / `task:update` / `task:delete`)
+ *   - A MongoDB-aggregation-powered leaderboard that ranks users by
+ *     count of completed tasks
+ *
+ * Every create / update / delete that affects the leaderboard emits a
+ * `leaderboard:update` event so connected leaderboard views refresh live.
+ */
+
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -5,13 +17,33 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const { getIO } = require('../socket');
 
+/**
+ * Emit an event to a single user's private Socket.IO room.
+ * @param {string} username
+ * @param {string} event
+ * @param {*}      payload
+ */
 const notifyUser = (username, event, payload) => {
     try { getIO().to(`user:${username}`).emit(event, payload); } catch (e) { /* socket not ready */ }
 };
+
+/**
+ * Broadcast an event to every connected client.
+ * @param {string} event
+ * @param {*}      payload
+ */
 const broadcast = (event, payload) => {
     try { getIO().emit(event, payload); } catch (e) { /* socket not ready */ }
 };
 
+/**
+ * JWT authentication middleware. Verifies the `x-auth-token` header, loads
+ * the user, and populates `req.user.id` + `req.username`.
+ *
+ * @param   {import('express').Request}  req
+ * @param   {import('express').Response} res
+ * @param   {import('express').NextFunction} next
+ */
 const auth = async (req, res, next) => {
     const token = req.header('x-auth-token');
     if (!token) return res.status(401).json({ message: 'No token' });
@@ -27,7 +59,12 @@ const auth = async (req, res, next) => {
     }
 };
 
-// GET /api/tasks
+/**
+ * @route   GET /api/tasks
+ * @desc    List every task owned by the current user, newest first.
+ * @access  Private
+ * @returns {200} Array of Task documents
+ */
 router.get('/', auth, async (req, res) => {
     try {
         const tasks = await Task.find({ author: req.username }).sort({ createdAt: -1 });
@@ -37,7 +74,18 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// POST /api/tasks
+/**
+ * @route   POST /api/tasks
+ * @desc    Create a new task for the current user. Emits `task:new` to the
+ *          owner's socket room.
+ * @access  Private
+ * @param   {string}      req.body.title
+ * @param   {string}      [req.body.description]
+ * @param   {TaskStatus}  [req.body.status='todo']
+ * @param   {TaskPriority}[req.body.priority='medium']
+ * @param   {string}      [req.body.dueDate]   ISO-8601 date string
+ * @returns {201} The newly-created task
+ */
 router.post('/', auth, async (req, res) => {
     try {
         const { title, description, status, priority, dueDate } = req.body;
@@ -59,7 +107,15 @@ router.post('/', auth, async (req, res) => {
     }
 });
 
-// PUT /api/tasks/:id
+/**
+ * @route   PUT /api/tasks/:id
+ * @desc    Update an existing task. Owner-only. Emits `task:update` to the
+ *          owner and, if status changed to/from `completed`, broadcasts
+ *          a `leaderboard:update` so the rankings refresh.
+ * @access  Private
+ * @param   {string} req.params.id
+ * @returns {200} Updated task
+ */
 router.put('/:id', auth, async (req, res) => {
     try {
         const task = await Task.findById(req.params.id);
@@ -86,7 +142,14 @@ router.put('/:id', auth, async (req, res) => {
     }
 });
 
-// DELETE /api/tasks/:id
+/**
+ * @route   DELETE /api/tasks/:id
+ * @desc    Delete a task. Owner-only. Emits `task:delete` to the owner and
+ *          `leaderboard:update` so rankings refresh.
+ * @access  Private
+ * @param   {string} req.params.id
+ * @returns {200} { message: "Task removed" }
+ */
 router.delete('/:id', auth, async (req, res) => {
     try {
         const task = await Task.findById(req.params.id);
@@ -104,7 +167,14 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-// GET /api/tasks/leaderboard
+/**
+ * @route   GET /api/tasks/leaderboard/all
+ * @desc    Top-10 leaderboard: groups all completed tasks by author,
+ *          sorts by count, and enriches with the user's avatar. Public —
+ *          the leaderboard is shown to every visitor.
+ * @access  Public
+ * @returns {200} Array of `{ username, completedTasks, avatar }`
+ */
 router.get('/leaderboard/all', async (req, res) => {
     try {
         // Aggregate users by completed task count

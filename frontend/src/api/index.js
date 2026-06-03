@@ -57,3 +57,8 @@ export const uploadImage = (file) => {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
+
+// Password reset
+export const forgotPassword = (email) => API.post('/auth/forgot-password', { email });
+export const validateResetToken = (token) => API.get(`/auth/reset-token/${token}`);
+export const resetPassword = (token, newPassword) => API.post('/auth/reset-password', { token, newPassword });
